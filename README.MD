@@ -1,131 +1,101 @@
-# Spaceship Titanic — CatBoost Solution
+# 🚀 Spaceship Titanic — CatBoost Solution
 
-In this project, I tackle the quirky and fun [Kaggle Spaceship Titanic](https://www.kaggle.com/competitions/spaceship-titanic) competition. The goal is to predict which passengers were transported to an alternate dimension during the spaceship's collision with a spacetime anomaly.
+This was my third Kaggle Machine Learning project.
 
-While the premise is sci-fi, the data challenges are very real: messy categorical features, complex missing value patterns, and the need for robust feature engineering. I used this project to deeply explore gradient boosting on decision trees (specifically CatBoost) and to practice debugging real-world ML pipeline issues.
+The goal was to predict whether a passenger of the Spaceship Titanic was transported to another dimension during the incident.
+
+**Kaggle Score: 0.80032**
 
 ---
 
-## Problem
+## 🎯 Goal
 
-This is a binary classification problem. The target variable is `Transported` (True/False), and the challenge lies in extracting meaningful signals from a mix of numerical, categorical, and heavily structured string features (like `Cabin` and `PassengerId`).
+In this project I wanted to continue improving my classification workflow and start making more decisions based on the data itself instead of applying standard preprocessing automatically.
 
-## Dataset
+One of the main things I focused on was understanding the missing values and looking for relationships between different columns before deciding how to fill them.
 
-The project relies on the official Kaggle competition data. The repository contains the main project notebook and a dedicated `data/` directory for the raw CSV files.
+I also used **CatBoost for the first time** in this project.
 
-## Workflow
+---
 
-To keep the experimentation structured, I followed a complete end-to-end machine learning pipeline:
+## 🔍 Exploratory Data Analysis
 
-1. Data Loading & Initial Audit
-2. Data Cleaning & Missing Value Imputation
-3. Exploratory Data Analysis (EDA)
-4. Feature Engineering
-5. Model Comparison (Baselines vs Advanced)
-6. Hyperparameter Tuning
-7. Final Model Selection
-8. Kaggle Submission Generation
+I started with a basic data audit:
 
-## Data Preprocessing
+* dataset size and structure;
+* data types;
+* missing values;
+* categorical features;
+* numerical features;
+* target distribution;
+* relationships between features.
 
-Handling missing values in this dataset required logical, domain-based reasoning rather than just blindly filling with medians. 
+I used visualizations during the process to check my assumptions and better understand the data.
 
-One of the key insights I used during preprocessing was the relationship between `CryoSleep` and onboard service spending: if a passenger is in cryosleep, they logically cannot spend money on RoomService, FoodCourt, ShoppingDeck, etc. Therefore, for passengers in cryosleep, I imputed missing spending values with `0`.
+---
 
-I also spent time fixing column types and ensuring strict train/test feature alignment, which is critical when working with strict libraries like CatBoost.
+## 🧩 Missing Values
 
-## Feature Engineering
+This became one of the most interesting parts of the project for me.
 
-Some of the most important features were hidden inside string columns. I拆解 (parsed) the `Cabin` feature to expose its internal spatial structure, creating three new distinct features:
+Instead of simply replacing missing values with the mean, median or most common category, I tried to look at the relationships between columns and understand what the missing value could represent.
 
-- `Deck`
-- `CabinNumber`
-- `Side` (Port vs Starboard)
+For example, some features contained information that could help explain another feature with missing values.
 
-I also explored mapping `Deck` information to `HomePlanet` based on the strong conditional probabilities I observed during the EDA phase.
+This changed the way I think about missing data:
 
-## Why CatBoost?
+> A missing value is not always just a technical problem that needs to be filled. Sometimes the other features can help explain why it is missing or what value is more reasonable.
 
-I tested several algorithms, but **CatBoost** emerged as the clear winner. It performed exceptionally well right out-of-the-box, handling the complex categorical features natively with minimal hyperparameter tuning.
+I also had to pay attention to data types and debugging during preprocessing, because some transformations did not work as expected at first.
 
-However, integrating it smoothly required addressing a few specific implementation details:
-- explicitly converting all categorical columns to `string` types to prevent silent type-casting errors
-- utilizing `catboost.Pool` for both training and prediction to maintain categorical metadata
-- strictly enforcing feature order alignment between the train and test sets
+---
 
-## Results
+## 🛠️ Feature Engineering
 
-I tracked the performance of several models to establish a solid baseline before moving to complex algorithms.
+I experimented with features based on the structure of the dataset and the relationships I found during EDA.
 
-| Model | Public Score | Notes |
-|---|---|---|
-| Logistic Regression | ~0.780 | Solid baseline model |
-| Random Forest | ~0.800 | Noticeable improvement over the baseline |
-| Tuned Random Forest | ~0.790 | Hyperparameter tuning actually degraded performance (overfitting) |
-| **CatBoost** | **0.80032** | **Selected final model** |
-| Tuned CatBoost | ~0.800 | No meaningful improvement over the default CatBoost parameters |
+The main idea was to create features that could make useful information more explicit for the model.
 
-The final reported Kaggle score is **0.80032**. Interestingly, extensive tuning didn't beat the well-engineered baseline CatBoost, reinforcing the principle that feature engineering often beats hyperparameter tweaking.
+I tried to avoid creating features just for the sake of increasing the score.
 
-## Bugs and Debugging
+---
 
-Real-world ML is messy, and I ran into several implementation hurdles that taught me a lot about pipeline robustness:
+## 🤖 Models
 
-- **Pandas `FutureWarning`**: I encountered a warning related to implicit downcasting after using `fillna()`. I resolved this by explicitly converting the affected boolean columns using `.astype(bool)` to ensure type safety.
-- **CatBoost Categorical Error**: CatBoost threw an error when it encountered the letter `"G"` in a column, mistakenly trying to parse it as a numerical value. I fixed this by strictly casting all categorical features to strings and wrapping the data in `catboost.Pool`.
-- **Train/Test Column Mismatch**: After dropping or creating features, the train and test sets occasionally fell out of sync. I implemented explicit column alignment steps before passing the test set to the model for final predictions.
+I compared different classification approaches and eventually used **CatBoost** as the main model.
 
-## Key Takeaways
+This was my first practical experience with CatBoost.
 
-This project reinforced several crucial lessons for my ML workflow:
+One of the reasons I wanted to try it was its ability to work well with categorical data and reduce the amount of manual preprocessing required for some features.
 
-- **Logic beats defaults**: Domain-based reasoning (like the CryoSleep spending logic) is vastly superior to blind imputation for missing values.
-- **Feature Engineering is king**: Parsing structured strings (like `Cabin`) can expose hidden signals that drastically boost model performance.
-- **Tuning isn't a silver bullet**: More complex hyperparameter searches don't guarantee better results; a strong baseline with good features often wins.
-- **Type safety matters**: Debugging data types and enforcing strict train/test alignment is a non-negotiable part of a reproducible ML pipeline.
+---
 
-## Possible Improvements
+## 📊 Evaluation
 
-If I were to iterate on this project further, I would explore:
+The competition uses **Accuracy** as the main evaluation metric.
 
-- extracting group size and family information from the `PassengerId` column
-- creating a aggregated `TotalSpend` feature across all luxury services
-- experimenting with advanced ensemble methods (Stacking/Blending)
-- using `Optuna` for a more systematic, Bayesian hyperparameter optimization
-- testing neural network approaches to see if they can capture the spatial anomaly patterns differently
+Final Kaggle score:
 
-## Repository Structure
+**0.80032**
+
+I also used validation during the development process to compare changes before making the final submission.
+
+---
+
+## 🧪 Experiments
+
+The main experiments in this project were related to:
+
+* missing-value handling;
+* feature engineering;
+* categorical features;
+* preprocessing;
+* model comparison;
+* CatBoost parameters.
+
+The general approach was:
 
 ```text
-Spaceship-Titanic-solution-using-CatBoost/
-├── README.md
-├── project.ipynb
-└── data/
+Hypothesis
+   ↓
 ```
-
-## How to Run
-
-1. Install the main dependencies:
-
-```bash
-pip install pandas numpy catboost scikit-learn matplotlib
-```
-
-2. Open `project.ipynb` in Jupyter or Kaggle.
-3. Run the notebook cells sequentially from top to bottom to reproduce the analysis and generate the final submission.
-
-## Tech Stack
-
-- Python
-- Jupyter Notebook
-- pandas
-- NumPy
-- matplotlib
-- scikit-learn
-- CatBoost
-- Kaggle
-
-## Conclusion
-
-For me, this project was an excellent exercise in executing a complete binary classification workflow under realistic constraints. It pushed me to look beyond basic model fitting and focus on the unglamorous but critical parts of data science: logical data cleaning, rigorous debugging of data types, and understanding when to stop tuning and trust the features.
